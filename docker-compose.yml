@@ -1,0 +1,43 @@
+version: '2.2'
+
+services:
+  backend:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile.dev
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+    environment:
+    - bootstrap.memory_lock=true
+    - cluster.name=docker-cluster
+    - cluster.routing.allocation.disk.threshold_enabled=false
+    - discovery.type=single-node
+    - ES_JAVA_OPTS=-XX:UseAVX=2 -Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        hard: -1
+        soft: -1
+    volumes:
+    - esdata:/usr/share/elasticsearch/data
+    ports:
+    - 9200:9200
+    healthcheck:
+      interval: 30s
+      retries: 10
+      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+
+volumes:
+  esdata:
+    driver: local
